@@ -152,8 +152,8 @@ const logoutUser=asynchandler(async(req,res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken:undefined
+            $unset:{
+                refreshToken:1
             }
         },
         {
@@ -205,8 +205,8 @@ const refreshAccessToken= asynchandler(async(req,res)=>{
     
         return res
         .status(200)
-        .cookie("accessToken",newAccessTokenaccessToken,options)
-        .cookie("refreshToken",newRefreshTokenefreshToken,options)
+        .cookie("accessToken",accessToken,options)
+        .cookie("refreshToken",newRefreshToken,options)
         .json(
             new ApiResponse(200,{accessToken,newRefreshToken},"Access token refreshed successfully")
         )
