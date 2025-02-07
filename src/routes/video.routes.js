@@ -4,17 +4,18 @@ import { deleteVideo, getAllVideos, getVideoById, publishAVideo, togglePublishSt
 import {upload} from "../middlewares/multer.middleware.js"
 const router=Router()
 
+router.use(verifyJWT)
 router
     .route("/")
     .get(getAllVideos)
     .post(
         upload.fields([
             {
-                name:videoFile,
+                name:"videoFile",
                 maxCount:1
             },
             {
-                name:thumbnail,
+                name:"thumbnail",
                 maxCount:1
             }
         ]),
@@ -22,7 +23,7 @@ router
     );
 
     router
-        .route(":/videoId")
+        .route("/:videoId")
         .get(getVideoById)
         .delete(deleteVideo)
         .patch(upload.single("thumbnail"),updateVideo)

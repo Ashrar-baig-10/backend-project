@@ -9,7 +9,7 @@ import {ApiResponse} from "../utils/apiresponse.js"
 import {asynchandler} from "../utils/asynchandler.js"
 import {uploadOnCloudinary}from "../utils/cloudinary.js"
 
-const getAllVideos=asynchandler(async(req,res)=>{
+const getAllVideos=asynchandler(async(req,res)=>{       //need clarity
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     //TODO: get all videos based on query, sort, pagination
 
@@ -60,11 +60,11 @@ const getAllVideos=asynchandler(async(req,res)=>{
     ])
 })
 
-const publishAVideo=asynchandler(async(req,res)=>{
-    const{title,description,thumbnail}=req.body
-
-    if([title,description,thumbnail].some(item=>item.trim()==="")){
-        throw new ApiError(400,"thumbnail, description,title required")
+const publishAVideo=asynchandler(async(req,res)=>{          //tested
+    const{title,description}=req.body
+    
+    if([title,description].some(item=>item.trim()==="")){
+        throw new ApiError(400," description,title required")
     }
 
     const videoLocalPath=req.files?.videoFile[0].path
@@ -74,20 +74,20 @@ const publishAVideo=asynchandler(async(req,res)=>{
         throw new ApiError(404,"thumbnail and video are required")
     }
 
-    const videoCloud=await uploadOnCloudinary(videoLocalPath)
+    const videoFileCloud=await uploadOnCloudinary(videoLocalPath)
     const thumbnailCloud=await uploadOnCloudinary(thumbnailLocalPath)
 
-    if(!videoCloud ||!thumbnailCloud){
+    if(!videoFileCloud ||!thumbnailCloud){
         throw new ApiError(500,"error while uploading to cloudinary")
     }
 
     const video=await Video.create({
-        owner:req.user._id,
+        owner: req.user._id,
         title,
         description,
-        videoFile:videoCloud.url,
+        videoFile:videoFileCloud.url,
         thumbnail:thumbnailCloud.url,
-        duration:videoCloud.duration
+        duration:videoFileCloud.duration
     })
 
     if(!video){
@@ -99,10 +99,10 @@ const publishAVideo=asynchandler(async(req,res)=>{
     .json(new ApiResponse(200,video,"video created and uploaded succesfully"))
 })
 
-const getVideoById = asynchandler(async (req, res) => {
+const getVideoById = asynchandler(async (req, res) => {     //tested
     const { videoId } = req.params
     //TODO: get video by id
-    if(!videoId||isValidObjectId(videoId)){
+    if(!videoId||!isValidObjectId(videoId)){
         throw new ApiError(404,"video file unavailable")
     }
 
@@ -116,7 +116,7 @@ const getVideoById = asynchandler(async (req, res) => {
     .json(new ApiResponse(200,video,"Video retreived succesfully"))
 })
 
-const updateVideo = asynchandler(async (req, res) => {
+const updateVideo = asynchandler(async (req, res) => {      //tested
     const { videoId } = req.params
     //TODO: update video details like title, description, thumbnail
     const {titleNew,descriptionNew}=req.body
@@ -131,7 +131,7 @@ const updateVideo = asynchandler(async (req, res) => {
         throw new ApiError(404,"video file not available")
     }
 
-    if(!video.owner.toString().equals(req.user._id.toString())){
+    if((video.owner.toString())!==(req.user._id.toString())){
         throw new ApiError(409,"you are not allowed to modify the video file")
     }
 
@@ -139,13 +139,13 @@ const updateVideo = asynchandler(async (req, res) => {
         throw new ApiError(404,"please provide a description or a title")
     }
 
-    const thumbnailLocalPath=req.file?.thumbnailNew.path
+    const thumbnailLocalPath=req.file?.path
 
     if(!thumbnailLocalPath){
         throw new ApiError(404,"thumbnail is required")
     }
-    const thumbnailCloud=await uploadOnCloudinary(thumbnailLocalPath)
-    if(!thumbnailCloud){
+    const thumbnailNew=await uploadOnCloudinary(thumbnailLocalPath)
+    if(!thumbnailNew){
         throw new ApiError(500,"error while uploading thumbnail to cloudinary")
     }
     
@@ -154,7 +154,7 @@ const updateVideo = asynchandler(async (req, res) => {
             $set:{
                 title:titleNew||title,
                 description:descriptionNew|| description,
-                thumbnail:thumbnailCloud?.url|| thumbnail
+                thumbnail:thumbnailNew?.url|| thumbnail
 
             }
         },{new:true}
@@ -169,7 +169,7 @@ const updateVideo = asynchandler(async (req, res) => {
     .json(new ApiResponse(200,updateVideo,"video ufile updated successfully"))
 })
 
-const deleteVideo = asynchandler(async (req, res) => {
+const deleteVideo = asynchandler(async (req, res) => {      //tested but not deleted from cloudinary
     const { videoId } = req.params
 
     const user= await req.user;
@@ -201,7 +201,7 @@ const deleteVideo = asynchandler(async (req, res) => {
     .json(new ApiResponse(200,isVideoDeleted,"Video file successfully deleted"))
 })
 
-const togglePublishStatus=asynchandler(async(req,res)=>{
+const togglePublishStatus=asynchandler(async(req,res)=>{    //
     const{videoId}=req.params
 
     if(!videoId||!isValidObjectId(videoId)){
@@ -214,14 +214,14 @@ const togglePublishStatus=asynchandler(async(req,res)=>{
         throw new ApiError(404,"video not found")
     }
 
-    if(!video.owner.toString().equals(req.user._id.toString())){
+    if((video.owner.toString())!==(req.user._id.toString())){
         throw new ApiError(408,"you are not allowed to update the video")
     }
-
+    const newIsPublished=!video.isPublished
     const isVideoUpdated=await Video.findByIdAndUpdate(videoId,
         {
             $set:{
-                isPublished:isPublished?false:true
+                isPublished:newIsPublished
             }
         },{
             new:true
