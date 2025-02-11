@@ -31,9 +31,6 @@ const getAllVideos=asynchandler(async(req,res)=>{       //need clarity
             }
         },
         {
-            $unwind:"$videoBy"
-        },
-        {
             $project:{
                 thumbnail:1,
                 videoFile:1,
