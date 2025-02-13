@@ -3,11 +3,20 @@ import {ApiError} from "../utils/apierror.js"
 import {ApiResponse} from "../utils/apiresponse.js"
 import {asynchandler} from "../utils/asynchandler.js"
 import {Like} from "../models/like.model.js"
+import {Video} from "../models/video.model.js"
+import {Comment} from "../models/comment.model.js"
+import {Tweet} from "../models/tweet.model.js"
+
 
 const toggleVideoLike=asynchandler(async(req,res)=>{
     const {videoId}=req.params
     if(!isValidObjectId(videoId)){
         throw new ApiError(400,"invalid video id")
+    }
+
+     const video=await Video.findById(videoId) //needs to be tested //to check videoid is available in database for Videos since on testing I entered user id in params and a like was generated
+     if(!video){
+         throw new ApiError(401,"video with this id does not exist")
     }
     const user=req.user?._id
 
@@ -46,6 +55,10 @@ const toggleCommentLike=asynchandler(async(req,res)=>{
         throw new ApiError(400,"comment id is invalid")
     }
 
+    const comment=await Comment.findById(commentId) //needs to be tested(same reason as above)
+    if(!comment){
+         throw new ApiError(401,"comment with this id does not exist")
+     }
     const user = req.user._id
     if(!user){
         throw new ApiError(401,"you are not alowed to like or dislike the comment")
@@ -84,6 +97,10 @@ const toggleTweetLike = asynchandler(async (req, res) => {
     if(!isValidObjectId(tweetId)){
         throw new ApiError(400,"tweet id is invalid")
     }
+     const tweet=await Tweet.findById(tweetId) //needs to be tested(same reason as above)
+     if(!tweet){
+         throw new ApiError(401,"tweet with this id does not exist")
+     }
 
     const user = req.user._id
     if(!user){
