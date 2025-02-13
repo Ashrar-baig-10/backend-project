@@ -117,6 +117,9 @@ const deletePlaylist = asynchandler(async (req, res) => {
         throw new ApiError(401,"user needs to be logged in to delete ")
     }
     const playlist=await Playlist.findById(playlistId)
+    if(!playlist){
+        throw new ApiError(404,"playlist does not exist or has already been deleted")
+    }
     if(req.user._id.toString()!==playlist.owner.toString()){
         throw new ApiError(404,"you are not allowed to delee the playlist")
     }
