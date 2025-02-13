@@ -93,7 +93,7 @@ const removeVideoFromPlaylist = asynchandler(async (req, res) => {
         throw new ApiError(401,"video does not exist in the playlist to be deleted")
     }
      const removeFromPlaylist=await Playlist.findOneAndUpdate(
-        {_id:new mongoose.Types.ObjectId(playlistId),owner:req.user._id},
+        {_id:new mongoose.Types.ObjectId(playlistId),owner:req.user._id},//just checking if this kind of conversion works
         {$pull:{videos:new mongoose.Types.ObjectId(videoId)}},
         {new:true}
      )
@@ -115,6 +115,10 @@ const deletePlaylist = asynchandler(async (req, res) => {
     }
     if(!req.user){
         throw new ApiError(401,"user needs to be logged in to delete ")
+    }
+    const playlist=await Playlist.findById(playlistId)
+    if(req.user._id.toString()!==playlist.owner.toString()){
+        throw new ApiError(404,"you are not allowed to delee the playlist")
     }
 
     const deletedPlaylist=await Playlist.findOneAndDelete(
