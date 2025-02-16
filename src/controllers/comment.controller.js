@@ -11,11 +11,11 @@ const getVideoComments = asynchandler(async (req, res) => {
     if(!isValidObjectId(videoId)){
         throw new ApiError(400,"invalid video id")
     }
-
+    
     const comments= await Comment.aggregate([
         {
             $match:{
-                video:videoId
+                video:new mongoose.Types.ObjectId(videoId)
             },
         },
         {
@@ -47,6 +47,31 @@ const getVideoComments = asynchandler(async (req, res) => {
             }
         },
         {
+            $project:{
+                content:1,
+                    owner:{
+                        fullname:1,
+                        username:1,
+                        subscribersCount:1,
+                        isSubscribed:1,
+                        channelsSubscribedToCount:1,
+                        avatar:1,
+                        coverImage:1,
+                        email:1,
+                    },
+                    video:{
+                        videoFile:1,
+                        thumbnail:1,
+                        description:1,
+                        duration:1,
+                        isPublished:1,
+                        owner:1,
+
+                    },
+                    createdAt:1,
+            }
+        },
+        {
             $skip: (page - 1) * parseInt(limit),
         
         },
@@ -54,7 +79,7 @@ const getVideoComments = asynchandler(async (req, res) => {
             $limit: parseInt(limit),
         }
     ])
-
+   // console.log(comments)
     if(!comments?.length){
         throw new ApiError(404,"Comments not found")
     }
