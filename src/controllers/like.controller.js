@@ -135,9 +135,70 @@ const toggleTweetLike = asynchandler(async (req, res) => {
 }
 )
 
-// const getLikedVideos = asynchandler(async (req, res) => {
-//     //TODO: get all liked videos
+const getLikedVideos = asynchandler(async (req, res) => {
+     //TODO: get all liked videos
+     const userId=req.user._id
 
-// })
+     const likedVideos=await Like.find({likedBy:userId}).populate("video")
+     //console.log(likedVideos)
+     if(!likedVideos ||(likedVideos.length===0)){
+        throw new ApiError(404,"no liked videos exist")
+     }
+     const likeCount=await Like.aggregate([
+            {
+              $match: {
+                likedBy: new mongoose.Types.ObjectId(userId),
+              },
+            },
+            {
+              $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "likedVideo",
+              },
+            },
+            {
+              $project: {
+                video: {
+                  $arrayElemAt: ["$likedVideo", 0],
+                },
+              },
+            },
+            {
+              $project: {
+                video: {
+                  _id: 1,
+                  videoFile: 1,
+                  description: 1,
+                  title: 1,
+                },
+              },
+            },
+            {
+              $group: {
+                _id: "$video",
+                totalLikes: {
+                  $sum: 1,
+                },
+              },
+            },
+     ]) 
 
-export { toggleCommentLike, toggleTweetLike, toggleVideoLike, /*getLikedVideos*/ };
+    // const likeCountMap=new Map(likeCount.map(count=>[count._id.toString(),count.totalLikes]))
+    //  console.log(likeCountMap)
+
+   // const likes=likedVideos.map(video=>({
+      //  videoId: video.video._id,
+    //        title: video.video.title,
+        //    description: video.video.description,
+          //  totalLikes: likeCountMap.get(video.video._id.toString()) || 0
+    //}))
+    //console.log(likeCount);
+
+    return res.status(200)
+                .json(new ApiResponse(200,likeCount,"liked videos retrieved sucessfully"))
+    
+ })
+
+export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };
