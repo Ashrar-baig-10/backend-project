@@ -28,7 +28,35 @@ import fs from "fs"
         }
 
     }
-    
+
+    const deleteThumbnailFromCloudinary=async(thumbnailUrl)=>{
+        try {
+            const thumbnailId=thumbnailUrl.split("/").pop().split(".")[0]
+            // const id=thumbnailUrl.split("/")
+            // const idlastpart=id[id.length-1]
+            // const thumbnailId=idlastpart.split(".")[0]
+            const response=await cloudinary.uploader.destroy(thumbnailId)
+            console.log("thumbnail successfully deleted from cloudinary");
+            return response
+            
+        } catch (error) {
+            console.log("error while deleting thumbnail from cloudinary",error)
+            return null
+        }
+    }
+
+    const deleteVideoFromCloudinary=async(videoUrl)=>{
+        try {
+            const videoId=videoUrl.split("/").pop().split(".")[0]
+            const response=await cloudinary.uploader.destroy(videoId,{
+                resource_type:"video"
+            })
+            console.log("video successfully deleted from cloudinary")
+            return response
+        } catch (error) {
+            console.log("Error while deleting video from cloudinary",error)
+        }
+    }
 
 
-export {uploadOnCloudinary}
+export {uploadOnCloudinary,deleteThumbnailFromCloudinary,deleteVideoFromCloudinary}
