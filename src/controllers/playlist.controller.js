@@ -34,7 +34,102 @@ const createPlaylist = asynchandler(async (req, res) => {
 const getUserPlaylists = asynchandler(async (req, res) => {
     const {userId} = req.params
     //TODO: get user playlists
+    if(!isValidObjectId(userId)){
+        throw new ApiError(400,"invalid user id")
+    }
 
+    const userPlaylists=await Playlist.aggregate(
+        [
+            {$match:{
+                  owner:new mongoose.Types.ObjectId(userId)
+            }
+          },
+            {
+              $lookup: {
+                from: "videos",
+                localField: "videos",
+                foreignField: "_id",
+                as: "videos",
+                pipeline:[
+                  {
+                    $lookup:{
+                      from: "users",
+                      localField: "owner",
+                      foreignField: "_id",
+                      as: "owner",
+                      pipeline:[
+                        {
+                          $project:{
+                            username:1,
+                            fullname:1,
+                            avatar:1
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    $sort:{createdAt:1}
+                  },
+                                  {
+                    $addFields:{
+                      owner:{
+                        $arrayElemAt:["$owner",0]
+                      }
+                    },
+                  },
+                  {
+                    $project:{
+                      title:1,
+                      description:1,
+                      owner:1,
+                      thumbnail:1
+                    }
+                  }
+                ],
+                
+              }
+            },
+            {
+              $lookup:{
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "createdBy",
+                pipeline:[
+                  {
+                    $project:{
+                      username:1,
+                      fullname:1,
+                      avatar:1
+                    }
+                  }
+                ]
+              },
+            },
+              {
+                $addFields: {
+                  createdBy:{
+                    $arrayElemAt:["$createdBy",0]
+                  } 
+                }
+              },
+            {
+              $project:{
+                videos:1,
+                createdBy:1,
+                name:1,
+                description:1
+              }
+            }
+            
+          ]
+    )
+    if(!userPlaylists){
+        throw new ApiError(400,"playlist not found or something went wrong while retrieving playlists")
+    }
+    return res.status(200)
+                .json(new ApiResponse(200,userPlaylists,"user playlists retrieved successfully"))
 })
 
 const getPlaylistById = asynchandler(async (req, res) => {
