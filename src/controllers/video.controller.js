@@ -7,10 +7,10 @@ import {Tweet}from "../models/tweet.model.js"
 import {ApiError} from "../utils/apierror.js"
 import {ApiResponse} from "../utils/apiresponse.js"
 import {asynchandler} from "../utils/asynchandler.js"
-import {uploadOnCloudinary}from "../utils/cloudinary.js"
+import {uploadOnCloudinary,deleteThumbnailFromCloudinary,deleteVideoFromCloudinary}from "../utils/cloudinary.js"
 
 const getAllVideos=asynchandler(async(req,res)=>{       //need clarity
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
+    const { page = 1, limit = 10, query="", sortBy="createdAt", sortType="asc", userId } = req.query
     //TODO: get all videos based on query, sort, pagination
 
     const videos=await Video.aggregate([
@@ -55,7 +55,15 @@ const getAllVideos=asynchandler(async(req,res)=>{       //need clarity
             $limit:parseInt(limit)
         }
     ])
+
+    if(!videos){
+        throw new ApiError(500,"either videos do not exist or something went wrong while retrieving the videos")
+    }
+    return res.status(200)
+                .json(new ApiResponse(200,videos,"successfully retrieved the videos"))
 })
+
+
 
 const publishAVideo=asynchandler(async(req,res)=>{          //tested
     const{title,description}=req.body
@@ -141,6 +149,13 @@ const updateVideo = asynchandler(async (req, res) => {      //tested
     if(!thumbnailLocalPath){
         throw new ApiError(404,"thumbnail is required")
     }
+    // deleting thumbnail from cloudinary
+    
+       const oldThumbnailDelete=await deleteThumbnailFromCloudinary(video.thumbnail)
+    if(!oldThumbnailDelete){
+        throw new ApiError(404,"error while deleting the old thumbnail from cloudinary")
+    }
+    
     const thumbnailNew=await uploadOnCloudinary(thumbnailLocalPath)
     if(!thumbnailNew){
         throw new ApiError(500,"error while uploading thumbnail to cloudinary")
@@ -174,13 +189,23 @@ const deleteVideo = asynchandler(async (req, res) => {      //tested but not del
         throw new ApiError(404,"you are not logged in to delete the video")
     }
 
-    // const videoOwner=await Video.owner
-    // if((videoOwner.toString())!==(user._id.toString())){
-    //     throw new ApiError(404,"you are not allowed to delete this video")
-    // }
+    const video=await Video.findById(videoId)
+    if(!video){
+        throw new ApiError(404,"video not found")
+    }
+    const videoOwner=video.owner
+    if((videoOwner.toString())!==(user._id.toString())){
+         throw new ApiError(404,"you are not allowed to delete this video")
+     }
 
-    if(!videoId && !isValidObjectId(videoId)){
+    if(!videoId || !isValidObjectId(videoId)){
         throw new ApiError(400,"video id is invalid")
+    }
+    
+    const oldVideoDelete=await deleteVideoFromCloudinary(video.videoFile)
+    const oldThumbnailDelete=await deleteThumbnailFromCloudinary(video.thumbnail)
+    if(!oldVideoDelete ||!oldThumbnailDelete){
+        throw new ApiError(404,"error while deleting the old videofile and thumbnail from cloudinary")
     }
 
     const isVideoDeleted=await Video.findByIdAndDelete(videoId)
